@@ -2,22 +2,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 
-Window::Window(std::string& win_name, int win_h, int win_w, int begin_y, int begin_x, short win_color, Window* parent){
+// save main win
+static Window* _main_win;
 
+// catch SIGWINCH signal and redraw window
+static void resizeHandler(int sig){
+	_main_win->updateWinSize();	 // resize all window
+}
+Window::Window(std::string& win_name, int win_h_p, int win_w_p, int begin_y_p, int begin_x_p, short win_color, Window* parent){
+	
     _childMap = new WMAP;
 	_win_name = new std::string(win_name);
-
-	_win_w = win_w;
-	_win_h = win_h;
-	_win_begin_y = begin_y;
-	_win_begin_x = begin_x;
-
+	_win_w_p = win_w_p;
+	_win_h_p = win_h_p;
+	_win_begin_y_p = begin_y_p;
+	_win_begin_x_p = begin_x_p;
 	_win_color = win_color;
 	_win_color_f = COLOR_WHITE;
 	_win_color_b = COLOR_BLACK;
+	_parent = parent;
 
-	if(parent == NULL){
+	// term window
+	if(_parent == NULL){
 		initscr();	
     	cbreak(); // To disable the buffering of typed characters by the TTY driver and get a character-at-a-time input
 		noecho(); // To suppress the automatic echoing of typed characters
@@ -27,11 +35,36 @@ Window::Window(std::string& win_name, int win_h, int win_w, int begin_y, int beg
 		if(hasColors()){
 			start_color(); // color support on
 		}
+		_main_win = this;
+		signal(SIGWINCH, resizeHandler);
+	}else{
+		_parent->insertChildWin(this);
+	}
+
+	_win = NULL;
+	updateWinSize();
+
+}
+
+void Window::updateWinSize(){
+	if(_parent == NULL){
+		_win_w_p = 100;
+		_win_h_p = 100;
+		_win_begin_y_p = 0;
+		_win_begin_x_p = 0;
+
 		getmaxyx(stdscr, _win_h, _win_w);
+		_win_begin_y = 0;
+		_win_begin_x = 0;
 		_win = stdscr;
 	}else{
-		_parent = parent;
-		_parent->insertChildWin(this);
+		_win_h = int( _win_h_p * (_parent->_win_h) / 100 );
+		_win_w = int( _win_w_p * (_parent->_win_w) / 100 );
+		_win_begin_y = int( _win_begin_y_p  * (_parent->_win_h) / 100 ) + (_parent->_win_begin_y); 
+		_win_begin_x = int( _win_begin_x_p  * (_parent->_win_w) / 100 ) + (_parent->_win_begin_x);
+		if(_win != NULL){
+			delwin(_win); // release screen win memory
+		}	
 		_win = newwin(_win_h, _win_w, _win_begin_y, _win_begin_x);
 	}
 	
@@ -41,8 +74,15 @@ Window::Window(std::string& win_name, int win_h, int win_w, int begin_y, int beg
 	}
 
 	sOutline();
-	reflashWin();
+	reflashWin();	
+	// set child win size
+	if(_childMap->size()){
+		for(MIT it = _childMap->begin(); it != _childMap->end(); it++){
+			(it->second)->updateWinSize();
+		}	
+	}
 }
+
 Window::~Window(){
 	delete _win_name;  // release name memory
 	if (_childMap->size()){
@@ -76,11 +116,12 @@ void Window::sOutline(chtype ls, chtype rs, chtype ts, chtype bs, chtype tl, cht
 
 void Window::printTips(const char* tips){	
 	int y,x;
-	waddstr(_win, tips);
 	getyx(_win,  y, x);
+	if(y==0) y++;
+	waddstr(_win, tips);
 	y++;
-	if(y > _win_h - 1) y = 0;
-	x = 0;
+	if(y > _win_h - 1) y = 1;
+	x = 1;
 	wmove(_win, y, x);
 }
 

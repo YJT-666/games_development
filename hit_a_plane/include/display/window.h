@@ -11,7 +11,8 @@ typedef chtype chtype;
 
 class Window{
 public:
-	Window(std::string& win_name, int win_h, int win_w, int begin_y, int begin_x, short win_color, Window* parent=NULL);
+	
+	Window(std::string& win_name, int win_h_p, int win_w_p, int begin_y_p, int begin_x_p, short win_color, Window* parent=NULL); // percent to parent win
 	~Window();
 	Window(Window& win, std::string win_name); // copy construct
 			
@@ -48,6 +49,8 @@ public:
 	Window* findChildWin(std::string& win_name);
 	void deleteChildWin(std::string& win_name);
 	int numOfChildWin();
+
+	void updateWinSize();
 private:
 	Window* _parent;     // parent window
 	
@@ -61,6 +64,15 @@ private:
 	int _win_h;
 	int _win_begin_y;
 	int _win_begin_x;
+
+	// percent 0~100 to parent;
+	int _win_w_p; 
+	int _win_h_p;
+	int _win_begin_y_p;
+	int _win_begin_x_p;
+
+	bool isResize;  // if win is resize;
+
 
 	short _win_color;  // win color pair number
 	short _win_color_f;

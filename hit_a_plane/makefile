@@ -1,48 +1,47 @@
 # Top makefile for C++ program                                                                                                                                                              
 # Copyright (C) 2023 JTsmileY  
- 
+
 # Debug option switch
-export DEBUG_SYMBOLS = TRUE 
+export DEBUG_SYMBOLS=TRUE
 
 # global compliation generate finall bin
-export GLOBAL_BIN_SYMBOLS =TRUE
+export GLOBAL_BIN_SYMBOLS=TRUE
+
+ifndef PLATFORM
+	PLATFORM=linux
+endif
 
 # Source file path   
-DIR = src 
-MODULES = $(shell ls $(DIR)) 
+DIR=src
+export MODULES=$(shell ls $(DIR))
 
-# you need to determine the order of module compilation!!!!
-main : display plane
 
 
 # set build directory build/lib build/bin
-ifeq ($(DEBUG_SYMBOLS), TRUE)
-    BUILDDIR = ./build/$(PLATFORM)_dbg
+ifeq ($(DEBUG_SYMBOLS),TRUE)
+	BUILDDIR = build/$(PLATFORM)_dbg
 else
-    BUILDDIR = ./build/$(PLATFORM)
+	BUILDDIR = build/$(PLATFORM)
 endif
+
+
+all : $(BUILDDIR) $(MODULES)	
+
 
 $(BUILDDIR):
 	@echo "    Create directory $@ ..."
-	mkdir -p $(BUILDDIR)/bin $(BUILDDIR)/lib
-
+	mkdir -p $(BUILDDIR)/bin $(BUILDDIR)/lib $(BUILDDIR)/dmk
    
 $(MODULES): 
 	@$(MAKE) -C $(DIR)/$@
 
+# you need to determine the order of module compilation!!!!
+main : display
 
-all : $(BUILDDIR) $(MODULES)	
-       
 clean : 
-	@for subdir in $(MODULES); \ 
-	do $(MAKE) -C $(DIR)/$$subdir $@; \ 
-	done 
-    
-distclean: 
-	@for subdir in $(MODULES); \ 
-	do $(MAKE) -C $(DIR)/$$subdir $@; \ 
-	done 
-    
+	@for subdir in $(MODULES);do $(MAKE) -C $(DIR)/$$subdir $@;done 
+dist:    
+	rm -rf $(BUILDDIR)
 tags: 
 	ctags -R 
     
